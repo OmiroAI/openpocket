@@ -1,7 +1,6 @@
 """Offline documentation baseline for Open Pocket onboarding."""
 from pathlib import Path
 import re
-import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = [
@@ -23,7 +22,6 @@ for path in REQUIRED:
             linked = (path.parent / target.split("#", 1)[0]).resolve()
             assert linked.is_file() and linked.is_relative_to(ROOT), f"Broken link: {path}: {target}"
 
-tracked = subprocess.check_output(["git", "ls-files"], cwd=ROOT, text=True).splitlines()
 media_suffixes = {".mp3", ".wav", ".m4a", ".aac", ".flac"}
-assert not any(Path(name).suffix.lower() in media_suffixes for name in tracked), "Tracked recorder media"
-print("Documentation, local links, and tracked media baseline passed.")
+assert not any(path.suffix.lower() in media_suffixes for path in ROOT.rglob("*")), "Exported recorder media"
+print("Documentation, local links, and exported media baseline passed.")
