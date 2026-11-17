@@ -1,0 +1,7 @@
+{
+  "profile": "python",
+  "reviewers": [
+    "kubja"
+  ],
+  "qa_scope": "offline documentation and tracked-media baseline; Android, radios, agent integrations, and hardware excluded"
+}
