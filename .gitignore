@@ -1,0 +1,26 @@
+# Local credentials, configuration, and recorder media
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key
+local.properties
+recordings/
+audio/
+downloads/
+*.mp3
+*.wav
+*.m4a
+*.aac
+*.flac
+
+# Android and local tooling
+.gradle/
+build/
+.idea/
+*.iml
+__pycache__/
+.pytest_cache/
