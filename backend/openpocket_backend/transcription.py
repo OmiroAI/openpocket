@@ -32,7 +32,7 @@ def save(path, value):
         os.close(fd)
 
 
-def process(job, source, metadata, submit):
+def process(job, source, metadata, submit, model):
     dest = OUT / job
     dest.mkdir(exist_ok=True)
     if (dest / "v1.json").exists() or (dest / "hold.json").exists():
@@ -75,7 +75,7 @@ def process(job, source, metadata, submit):
             if not segments or offset != decoded.getnframes():
                 raise ValueError("incomplete_coverage")
         save(dest / "v1.json", {"job_id": job, "revision": 1, "metadata": metadata,
-             "model": "whisper-large-v3-turbo", "sample_rate": 16000, "segments": segments})
+             "model": model, "sample_rate": 16000, "segments": segments})
 
 
 def run():
@@ -116,7 +116,7 @@ def run():
         if source.parent != DATA / "audio":
             raise ValueError("invalid_audio_path")
         try:
-            process(job, source, row["metadata"], provider.transcribe)
+            process(job, source, row["metadata"], provider.transcribe, provider.MODEL)
         except Exception as error:
             dest.mkdir(exist_ok=True)
             reason = str(error) if type(error) is ValueError and str(error) in {

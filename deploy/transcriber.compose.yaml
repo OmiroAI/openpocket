@@ -2,7 +2,13 @@ name: openpocket-transcription
 services:
   worker:
     container_name: openpocket-transcriber
-    image: openpocket-backend:local
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.worker
+    environment:
+      TRANSCRIPTION_ENDPOINT: ${TRANSCRIPTION_ENDPOINT:?private transcription URL required}
+      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:?model ID required}
+      ALLOW_PRIVATE_HTTP: ${ALLOW_PRIVATE_HTTP:-0}
     command: ["python", "/app/worker.py"]
     user: "10000:10000"
     restart: unless-stopped
@@ -12,9 +18,6 @@ services:
     security_opt: [no-new-privileges:true]
     networks: [access]
     volumes:
-      - ${WORKER_RUNTIME:?runtime directory}/worker-v2.py:/app/worker.py:ro
-      - ${WORKER_RUNTIME:?runtime directory}/ffmpeg:/usr/local/bin/ffmpeg:ro
-      - ${WORKER_RUNTIME:?runtime directory}/transcribe.py:/provider/transcribe.py:ro
       - ${AGENT_CONFIG:?protected agent configuration}:/config/agent.json:ro
       - ${AUDIO_DIR:?backend audio directory}:/data/audio:ro
       - ${TRANSCRIPT_DIR:?private transcript exchange}:/transcripts
