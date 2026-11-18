@@ -1,6 +1,6 @@
 # Set up Open Pocket
 
-Install the preview APK or build from source using the README. In Settings choose **Find Pocket**, select your recorder and grant Nearby devices permission. Enter your own 16-character hexadecimal binding key under Device details when prompted. Keep the recorder nearby and idle. A previously bound recorder needs its existing credential. First-time owner key enrollment still needs independent hardware verification. A reset can erase audio. Preserve originals before considering any reset.
+Install the preview APK or build from source using the README. In Settings choose **Find Pocket** (or **Change recorder**), grant Nearby devices permission and select your idle recorder. For a new, unpaired recorder, choose **Pair new Pocket**. The phone creates and stores its binding key. For a recorder bound elsewhere, enter its existing 16-character hexadecimal key. Keep the app open to discover recordings. First-time pairing and discovery were verified on Pixel 7 Pro.
 
 ## Private HTTPS upload service
 

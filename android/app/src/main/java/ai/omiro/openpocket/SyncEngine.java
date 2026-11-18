@@ -34,7 +34,57 @@ final class SyncEngine {
         store.event("settings","Agent destination verified");result.done(null);changed("Agent destination saved");
     }catch(Exception e){result.done(safe(e));}});}
     private void urlCheck(String name,String url,String token)throws Exception{if(name.isBlank()||name.length()>80||token.length()<32)throw new AgentApi.Failure("Enter an agent name and its upload token");AgentApi.validUrl(url);}
-    void recorder(String address,String key,Result result){worker.execute(()->{try{if(!android.bluetooth.BluetoothAdapter.checkBluetoothAddress(address))throw new AgentApi.Failure("Choose a valid recorder address");if(!key.isBlank()){if(!key.matches("[0-9a-fA-F]{16}"))throw new AgentApi.Failure("Binding key must contain 16 hex characters");secrets.put("pocket_binding",key);}if(secrets.get("pocket_binding")==null)throw new AgentApi.Failure("Enter the recorder binding key");settings.device(address);if(pocket!=null)pocket.close();pocket=null;result.done(null);cycle();}catch(Exception e){result.done(safe(e));}});}
+    private String recorderKey(String address)throws Exception{
+        String key=secrets.get("binding:"+address);
+        if(key==null&&address.equalsIgnoreCase(settings.device())){
+            key=secrets.get("pocket_binding");
+            if(key!=null)secrets.put("binding:"+address,key);
+        }
+        return key;
+    }
+    void enroll(String address,Result result){
+        worker.execute(()->{
+            try{
+                if(!visible)throw new AgentApi.Failure("Open the app to pair");
+                if(!settings.device().isBlank())recorderKey(settings.device());
+                if(pocket!=null)pocket.close();
+                pocket=new PocketBleClient(context);
+                pocket.connect(address);
+                String key=secrets.get("enrollment:"+address);
+                if(key==null){
+                    byte[] bytes=new byte[8];
+                    new java.security.SecureRandom().nextBytes(bytes);
+                    StringBuilder hex=new StringBuilder();
+                    for(byte b:bytes)hex.append(String.format(java.util.Locale.ROOT,"%02x",b&255));
+                    key=hex.toString();
+                    secrets.put("enrollment:"+address,key);
+                }
+                pocket.enroll(key);
+                secrets.put("binding:"+address,key);
+                settings.device(address);
+                result.done(null);
+                cycle();
+            }catch(Exception e){
+                if(pocket!=null)pocket.close();
+                pocket=null;
+                store.event("pairing",safe(e));
+                result.done(safe(e));
+            }
+        });
+    }
+    void recorder(String address,String key,Result result){
+        worker.execute(()->{try{
+            if(!android.bluetooth.BluetoothAdapter.checkBluetoothAddress(address))throw new AgentApi.Failure("Choose a valid recorder address");
+            if(!settings.device().isBlank())recorderKey(settings.device());
+            String credential=key.isBlank()?recorderKey(address):key;
+            if(credential==null||!credential.matches("[0-9a-fA-F]{16}"))throw new AgentApi.Failure("Enter this recorder’s 16-character binding key");
+            if(pocket!=null)pocket.close();
+            pocket=new PocketBleClient(context);
+            pocket.connect(address);pocket.authenticate(credential);
+            secrets.put("binding:"+address,credential);settings.device(address);
+            result.done(null);cycle();
+        }catch(Exception e){if(pocket!=null)pocket.close();pocket=null;result.done(safe(e));}});
+    }
     void approveOriginal(String id){worker.execute(()->{store.approveOriginal(id);cycle();});}
     void reassign(String id){worker.execute(()->{String active=settings.destinationId();if(active!=null&&store.reassign(id,active))changed("Destination assignment updated");else changed("An attempted delivery must finish at its original destination");});}
     void deleteFromPocket(Recording r){worker.execute(()->{try{if(pocket==null||!pocket.isConnected()||!settings.device().equalsIgnoreCase(r.device))throw new AgentApi.Failure("Connect to this recorder first");pocket.delete(new PocketFile(r.folder,r.file,r.durationSeconds));store.deletedFromPocket(r.id);settings.invalidateStorage();store.event("recorder","Confirmed deletion completed");changed("Deleted from Pocket");}catch(Exception e){changed("Deletion failed: "+safe(e));}});}
@@ -70,7 +120,7 @@ final class SyncEngine {
         if(visible){long downloads=0,uploads=0;for(Recording r:store.recordings())if(r.state.equals("failed")){if(r.localPath==null)downloads++;else uploads++;}changed(downloads+uploads>0?downloads+" download failures · "+uploads+" uploads need attention":pocket!=null&&pocket.isConnected()?"Pocket connected · queue checked":"Pocket disconnected · local queue checked");}
     }
     private void syncPocket(String address)throws Exception{
-        if(pocket==null||!pocket.isConnected()){changed("Connecting to Pocket");PocketBleClient p=new PocketBleClient(context);pocket=p;p.connect(address);p.authenticate(secrets.get("pocket_binding"));store.event("recorder","Pocket connected");}
+        if(pocket==null||!pocket.isConnected()){changed("Connecting to Pocket");PocketBleClient p=new PocketBleClient(context);pocket=p;p.connect(address);p.authenticate(recorderKey(address));store.event("recorder","Pocket connected");}
         wifiThisCycle=System.currentTimeMillis()>=wifiRetryAfter&&settings.preferWifi()&&context.checkSelfPermission(android.Manifest.permission.NEARBY_WIFI_DEVICES)==android.content.pm.PackageManager.PERMISSION_GRANTED;
         if(wifiThisCycle){try{wifiThisCycle=pocket.battery()>10;}catch(Exception unavailable){wifiThisCycle=false;}}
         if(!visible)return;try{long[] space=pocket.storage();settings.storage(address,space[0],space[1]);}catch(Exception unavailable){settings.invalidateStorage();}
@@ -94,7 +144,7 @@ final class SyncEngine {
             }catch(Exception e){wifiThisCycle=false;wifiRetryAfter=System.currentTimeMillis()+TimeUnit.MINUTES.toMillis(5);if(!visible)throw e;
                 store.event("download",safe(e)+" · retrying over Bluetooth");changed("Wi-Fi unavailable · using Bluetooth");
                 PocketBleClient prior=pocket;if(prior!=null)prior.close();
-                PocketBleClient replacement=new PocketBleClient(context);pocket=replacement;replacement.connect(settings.device());replacement.authenticate(secrets.get("pocket_binding"));replacement.list();
+                PocketBleClient replacement=new PocketBleClient(context);pocket=replacement;replacement.connect(settings.device());replacement.authenticate(recorderKey(settings.device()));replacement.list();
             }finally{client.close();wifi=null;}
         }
         if(!visible)throw new InterruptedException();

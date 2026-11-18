@@ -21,7 +21,7 @@ Subscribe to control notifications before issuing commands. Commands use `APP&..
 
 ## Binding and clock
 
-An unbound device uses `APP&LNP&<client_uuid>` (`MCU&LNP`), followed by `APP&SK&<16-character hex key>` (`MCU&SK&OK` or `MCU&SK&ERR`) and `APP&T&<epoch_seconds>` (`MCU&T&OK`). Store the binding key securely. Never put real keys in source, logs, fixtures, or analytics. The key's first eight characters form the documented SoftAP password.
+For first-time pairing, generate a recorder-specific 16-character hex key and send `APP&SK&<key>`. After `MCU&SK&OK`, send `APP&T&<epoch_seconds>` and wait for `MCU&T&OK`. This sequence succeeded on an unpaired recorder with Pixel 7 Pro. Require positive acknowledgment before selecting the new recorder. Store the binding key securely. Never put real keys in source, logs, fixtures, or analytics. The key's first eight characters form the documented SoftAP password.
 
 ## Discovery and status
 

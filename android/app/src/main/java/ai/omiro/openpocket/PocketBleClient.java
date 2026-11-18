@@ -122,6 +122,12 @@ final class PocketBleClient implements AutoCloseable {
     private void selectFolder(PocketFile file)throws Exception {
         controls.clear();command("APP&LIST&"+file.folder);awaitStage("MCU&LIST&",20000,"folder index");
     }
+    void enroll(String key)throws Exception {
+        authenticate(key);
+        controls.clear();
+        command("APP&T&"+System.currentTimeMillis()/1000);
+        if(!"MCU&T&OK".equals(awaitStage("MCU&T",8000,"clock sync")))throw new IllegalStateException("Recorder clock setup failed");
+    }
     void authenticate(String bindingKey) throws Exception {
         if (bindingKey==null || !bindingKey.matches("[0-9a-fA-F]{16}")) throw new IllegalStateException("Pocket binding key is not configured");
         controls.clear(); command("APP&SK&"+bindingKey);

@@ -4,7 +4,7 @@ Use the Pocket AI recorder you love without a subscription. Open Pocket brings r
 
 ![Pocket recorder → Android phone → your server → your agent](docs/assets/workflow.svg)
 
-**Development preview.** The hardware test target is Pixel 7 Pro. The app requires Android 13 or later, a compatible Pocket recorder and its binding key. Keep the app open while syncing.
+**Development preview.** The hardware test target is Pixel 7 Pro. The app requires Android 13 or later, a compatible Pocket recorder, and the existing binding key if the recorder is already bound elsewhere. Keep the app open while syncing.
 
 1. **Connect Pocket** in Settings. New recordings download automatically over Wi-Fi or Bluetooth. You can play phone copies directly in the app.
 2. **Connect your server** with its private HTTPS address and upload token. Open Pocket retries interrupted deliveries and keeps local audio until the server confirms receipt.
