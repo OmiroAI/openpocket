@@ -97,6 +97,14 @@ public class MainActivity extends Activity {
             Button check=button("Check for recordings",()->withPermission(engine::syncNow));
             check.setEnabled(!busy);
             connection.addView(check);
+            Button controls = button("Control Pocket recording", () -> {
+                String[] labels = {"Start recording", "Pause recording", "Resume recording", "Stop recording"};
+                new AlertDialog.Builder(this).setTitle("Pocket recording").setItems(labels, (dialog, index) ->
+                    withPermission(() -> engine.control(PocketBleClient.Control.values()[index],
+                        error -> toast(error == null ? labels[index] + " confirmed by Pocket" : error)))).show();
+            });
+            controls.setEnabled(!busy);
+            connection.addView(controls);
         }
         if(destination==null){LinearLayout setup=card();LinearLayout next=new LinearLayout(this);next.setGravity(Gravity.CENTER_VERTICAL);TextView heading=text("Agent not connected",16,ink);heading.setTypeface(Typeface.create("sans-serif-medium",0));next.addView(heading,new LinearLayout.LayoutParams(0,-2,1));Button configure=button("Set up",this::openAgentSetup);configure.setContentDescription("Set up agent");next.addView(configure,new LinearLayout.LayoutParams(dp(84),-2));setup.addView(next);setup.addView(text("Audio stays on this phone until you connect your agent.",13,muted));}
         else connection.addView(text("Send to "+destination.name,13,muted));

@@ -119,8 +119,26 @@ final class SyncEngine {
         if(visible&&!yieldDownloads)uploadPending();
         if(visible){long downloads=0,uploads=0;for(Recording r:store.recordings())if(r.state.equals("failed")){if(r.localPath==null)downloads++;else uploads++;}changed(downloads+uploads>0?downloads+" download failures · "+uploads+" uploads need attention":pocket!=null&&pocket.isConnected()?"Pocket connected · queue checked":"Pocket disconnected · local queue checked");}
     }
-    private void syncPocket(String address)throws Exception{
+    void control(PocketBleClient.Control action, Result result) {
+        long session = foregroundVersion;
+        String address = settings.device();
+        worker.execute(() -> {
+            try {
+                if (!visible || session != foregroundVersion || !address.equals(settings.device()))
+                    throw new IllegalStateException("Recorder selection changed");
+                connectPocket(address);
+                pocket.control(action);
+                result.done(null);
+                if (action == PocketBleClient.Control.STOP) cycle();
+            } catch (Exception error) { result.done(safe(error)); }
+        });
+    }
+    private void connectPocket(String address) throws Exception {
         if(pocket==null||!pocket.isConnected()){changed("Connecting to Pocket");PocketBleClient p=new PocketBleClient(context);pocket=p;p.connect(address);p.authenticate(recorderKey(address));store.event("recorder","Pocket connected");}
+    }
+    private void syncPocket(String address)throws Exception{
+        connectPocket(address);
+        if (!pocket.idle()) { changed("Pocket is recording or paused"); return; }
         wifiThisCycle=System.currentTimeMillis()>=wifiRetryAfter&&settings.preferWifi()&&context.checkSelfPermission(android.Manifest.permission.NEARBY_WIFI_DEVICES)==android.content.pm.PackageManager.PERMISSION_GRANTED;
         if(wifiThisCycle){try{wifiThisCycle=pocket.battery()>10;}catch(Exception unavailable){wifiThisCycle=false;}}
         if(!visible)return;try{long[] space=pocket.storage();settings.storage(address,space[0],space[1]);}catch(Exception unavailable){settings.invalidateStorage();}

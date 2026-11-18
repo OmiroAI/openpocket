@@ -134,9 +134,25 @@ final class PocketBleClient implements AutoCloseable {
         String response=awaitPrefix("MCU&SK",8000);
         if (!"MCU&SK&OK".equals(response)) throw new IllegalStateException("Pocket binding was rejected");
     }
+    enum Control {
+        START("STA"), PAUSE("PAU"), RESUME("RESU"), STOP("STO");
+        final String command;
+        Control(String command) { this.command = command; }
+    }
+    void control(Control action) throws Exception {
+        String reply = "MCU&" + action.command;
+        controls.clear();
+        command("APP&" + action.command);
+        if (!reply.equals(awaitStage(reply, 8000, "recording control")))
+            throw new IllegalStateException("Pocket did not confirm the recording command");
+    }
+    boolean idle() throws Exception {
+        controls.clear();
+        command("APP&STE");
+        return "MCU&STE&0".equals(awaitPrefix("MCU&STE&",8000));
+    }
     List<PocketFile> list() throws Exception {
-        controls.clear(); command("APP&STE");
-        if (!"MCU&STE&0".equals(awaitPrefix("MCU&STE&",8000))) throw new IllegalStateException("Recorder is busy recording; retry when idle");
+        if (!idle()) throw new IllegalStateException("Recorder is busy recording; retry when idle");
         ArrayList<String> folders=new ArrayList<>();
         controls.clear(); command("APP&LIST_DIRS");
         long end=System.currentTimeMillis()+15000, last=System.currentTimeMillis();

@@ -27,3 +27,5 @@ OPENPOCKET_TLS_DIR=/absolute/private/tls
 From the checkout run `docker compose --env-file /absolute/private/compose.env -f deploy/compose.yaml up -d --build`. Connect the phone to your tailnet. In Settings enter an agent name, `https://YOUR_HOSTNAME:8448`, and the upload token. Keep the agent token on trusted server-side consumers. Record a short test clip, open Sync, then check Delivered for the receipt. Plan certificate renewal and backups before relying on the service.
 
 See [development and integration](development.md) for agent setup and [worker setup](worker.md) for optional server-side transcription.
+
+In Sync, choose **Control Pocket recording** to start, pause, resume or stop the selected recorder. The app waits for acknowledgment. Stopping triggers discovery.
