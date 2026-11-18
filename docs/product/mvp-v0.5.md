@@ -4,7 +4,7 @@ MVP requirements v0.5, supplied 2026-11-17. The owner has replaced the initial S
 
 ## Goal and ownership
 
-Open Pocket is an open-source Android companion for people who want to keep using their Pocket AI recorder without a subscription. Android handles recorder connectivity, reliable download, a local queue, and delivery to one configured self-hosted AI agent. The agent handles transcription, language hints, speaker recognition when possible, notes, action items, summaries, memory, and user interaction through its existing interface.
+Open Pocket is an open-source Android companion for people who want to keep using their Pocket AI recorder without a subscription. Android handles recorder connectivity, reliable download, a local queue, and delivery to one configured self-hosted AI agent. The optional backend worker handles transcription. The agent handles speaker recognition when possible, notes, action items, summaries, memory, and user interaction through its existing interface.
 
 ## Supported environment
 
@@ -46,7 +46,7 @@ Open Pocket is an open-source Android companion for people who want to keep usin
 
 ## Interface
 
-Two screens: **Recordings** (recorder connection, recordings, progress, retry, playback, and confirmed deletion) and **Settings** (recorder setup, agent destination and credentials, storage). No notes browser, transcript editor, or chat UI.
+Bottom navigation includes **Sync** for pending transfers, **Delivered** for recording history and playback, and **Settings** for recorder setup, destination credentials and storage. No notes browser, transcript editor, or chat UI.
 
 ## Agent service handoff
 

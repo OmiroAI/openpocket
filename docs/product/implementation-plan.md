@@ -1,11 +1,11 @@
 # MVP implementation plan
 
-Status: proposed. Review [the design](../architecture/mvp-design.md) before resuming application work. Keep each implementation change small and reviewable. This plan does not authorize deployment of the upload service.
+The Android bridge, upload service and optional transcription worker are implemented. Remaining acceptance work is tracked in [first public alpha](release-readiness.md).
 
 | Stage | Deliverable | Exit evidence |
 | --- | --- | --- |
-| 1. Design and contract | Agree the two screens, destination flow, HTTPS setup, and upload/receipt/jobs schema | Reviewed design and documented open decisions |
-| 2. App foundation | Installable Android shell, private storage, persistent queue, protected secrets, two screens with synthetic data | Build and focused state tests; installation on Pixel 7 Pro; reviewed UI preview |
+| 1. Design and contract | Agree Sync, Delivered and Settings, destination flow, HTTPS setup, and upload/receipt/jobs schema | Reviewed design and documented open decisions |
+| 2. App foundation | Installable Android shell, private storage, persistent queue, protected secrets, navigation with synthetic data | Build and focused state tests; installation on Pixel 7 Pro; reviewed UI preview |
 | 3. Recorder slice | Select/connect/reconnect, discover recordings, download a complete file, display progress and play it | Authorized bench checks on Pocket and Pixel; interrupted and repeated transfer cases |
 | 4. Agent delivery | Build the upload service and jobs API; configure HTTPS/token access, shared files, notifications, and receipt reconciliation | Isolated service/agent contract tests covering lost acknowledgments, conflicts, and repeated submissions |
 | 5. Lifecycle and management | Foreground retries, restart recovery, destination change confirmation, deletion, seven-day cleanup, diagnostics | Failure-path tests and device checks; no loss of undelivered media |
@@ -27,4 +27,4 @@ The recorder's usable binding/setup route; an HTTPS service endpoint and scoped 
 
 Develop locally in focused commits. Publish changes for Kodi's normal independent QA, different-model review, CI, and human approval when ready. The repository currently has documentation QA only; add Android build and behavioral checks before presenting implementation as accepted.
 
-Record outcomes in `docs/`, including failed cases, compatibility limits, and verified fixes. Preserve the product boundary: Android transfers recordings; Hermes owns transcription, speaker identification, notes, and memory.
+Record outcomes in `docs/`, including failed cases, compatibility limits, and verified fixes. Preserve the product boundary: Android transfers recordings. The optional backend worker produces transcripts. The configured agent owns contextual notes and memory.

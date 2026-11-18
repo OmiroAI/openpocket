@@ -1,6 +1,6 @@
 # MVP design proposal
 
-Status: proposed for review. This document does not approve an implementation or claim device compatibility. Product scope is defined in [MVP v0.5](../product/mvp-v0.5.md).
+The implemented app uses **Sync** for pending transfers, **Delivered** for receipt-confirmed recordings, and **Settings** for recorder and destination setup. The backend can transcribe delivered audio before handing the transcript to an agent. The wireframes below preserve the original design proposal. See the [setup guide](../setup.md) for the current workflow.
 
 ## Experience
 
