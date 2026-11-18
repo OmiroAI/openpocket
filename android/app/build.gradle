@@ -1,0 +1,25 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'ai.omiro.openpocket'
+    compileSdk 35
+    buildFeatures { buildConfig true }
+
+    defaultConfig {
+        applicationId 'ai.omiro.openpocket'
+        minSdk 33
+        targetSdk 35
+        testInstrumentationRunner 'ai.omiro.openpocket.BenchInstrumentation'
+        versionCode 1
+        versionName '0.5.0-dev'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    testOptions { unitTests.returnDefaultValues = true }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
