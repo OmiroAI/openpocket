@@ -28,7 +28,12 @@ class Config:
     max_upload_bytes: int = 100_000_000
     max_storage_bytes: int = 10_000_000_000
 
+    transcripts: Path | None = None
+    transcript_token: str | None = None
+
     def __post_init__(self):
+        if self.transcript_token is not None and (len(self.transcript_token)<32 or self.transcript_token in (self.agent_token,self.upload_token)):
+            raise ValueError("Use a separate transcript reader credential")
         if min(len(self.upload_token), len(self.agent_token)) < 32 or self.upload_token == self.agent_token:
             raise ValueError("Provide distinct upload and agent credentials of at least 32 characters")
         if not 1 <= self.max_upload_bytes <= self.max_storage_bytes:
@@ -60,6 +65,36 @@ def create_app(config: Config, adapter=None, store=None):
     async def lookup(request):
         auth(request, "upload")
         return JSONResponse(await run_in_threadpool(store.lookup, identifier(request)))
+
+    async def progress(request):
+        auth(request, "upload")
+        receipt = await run_in_threadpool(store.lookup, identifier(request))
+        state = receipt["job_state"]
+        labels = {"failed":"needs_attention", "completed":"agent_completed", "processing":"agent_processing"}
+        stage = labels.get(state, "waiting_for_agent")
+        if config.transcripts and state == "queued":
+            root = config.transcripts / receipt["job_id"]
+            if (root/"hold.json").is_file():
+                stage = "needs_attention"
+            elif (root/"v1.json").is_file():
+                stage = "transcript_ready"
+            elif (root/"submitting.json").is_file() or next(root.glob("chunk-*.json"), None):
+                stage = "transcribing"
+            else:
+                stage = "waiting_for_transcription"
+        return JSONResponse({"stage":stage,"destination_id":store.destination_id},headers={"Cache-Control":"no-store"})
+
+    async def transcript(request):
+        expected = config.transcript_token
+        if not expected or not secrets.compare_digest(request.headers.get("authorization","").encode(), ("Bearer "+expected).encode()):
+            raise Problem(401,"unauthorized")
+        job = request.path_params["job_id"]
+        if not config.transcripts or not re.fullmatch("[0-9a-f]{32}",job):
+            raise Problem(404,"transcript_unavailable")
+        revision = config.transcripts/job/"v1.json"
+        if not revision.is_file():
+            raise Problem(404,"transcript_unavailable")
+        return FileResponse(revision,media_type="application/json",headers={"Cache-Control":"no-store"})
 
     async def upload(request: Request):
         auth(request, "upload")
@@ -167,7 +202,8 @@ def create_app(config: Config, adapter=None, store=None):
     app = Starlette(routes=[Route("/v1/info", info),
         Route("/v1/recordings/{recording_id}", lookup, methods=["GET"]),
         Route("/v1/recordings/{recording_id}", upload, methods=["PUT"]),
-        Route("/v1/jobs", jobs), Route("/v1/jobs/{job_id}/audio", audio_file), Route("/v1/jobs/{job_id}/{action}", action, methods=["POST"])],
+        Route("/v1/recordings/{recording_id}/progress", progress),
+        Route("/v1/jobs/{job_id}/transcript", transcript), Route("/v1/jobs", jobs), Route("/v1/jobs/{job_id}/audio", audio_file), Route("/v1/jobs/{job_id}/{action}", action, methods=["POST"])],
         exception_handlers={Problem: problem}, lifespan=lifespan)
     app.state.store = store
     return app
@@ -179,7 +215,9 @@ def from_env():
         raise ValueError("OPENPOCKET_DATA_DIR must be absolute")
     config = Config(root, os.environ["OPENPOCKET_UPLOAD_TOKEN"], os.environ["OPENPOCKET_AGENT_TOKEN"],
                     int(os.getenv("OPENPOCKET_MAX_UPLOAD_BYTES", "100000000")),
-                    int(os.getenv("OPENPOCKET_MAX_STORAGE_BYTES", "10000000000")))
+                    int(os.getenv("OPENPOCKET_MAX_STORAGE_BYTES", "10000000000")),
+                    Path(os.environ["OPENPOCKET_TRANSCRIPT_DIR"]) if os.getenv("OPENPOCKET_TRANSCRIPT_DIR") else None,
+                    os.getenv("OPENPOCKET_TRANSCRIPT_TOKEN"))
     webhook = os.getenv("OPENPOCKET_NOTIFY_URL")
     adapter = WebhookAdapter(webhook, os.environ["OPENPOCKET_NOTIFY_TOKEN"]) if webhook else PollingAdapter()
     return create_app(config, adapter)

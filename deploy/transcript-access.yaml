@@ -1,0 +1,6 @@
+services:
+  backend:
+    environment:
+      OPENPOCKET_TRANSCRIPT_DIR: /transcripts
+    volumes:
+      - ${TRANSCRIPT_DIR:?private transcript exchange required}:/transcripts:ro

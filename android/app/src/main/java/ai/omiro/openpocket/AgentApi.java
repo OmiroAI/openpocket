@@ -20,6 +20,20 @@ final class AgentApi {
         return value.trim().replaceAll("/+$","");
     }
     JSONObject info(String url,String token)throws Exception {return request(validUrl(url)+"/v1/info",token,null,null,null);}
+    String processingStatus(Destination destination, Recording recording, String token) throws Exception {
+        JSONObject result=request(validUrl(destination.url)+"/v1/recordings/"+recordingId(recording)+"/progress",token,null,null,null);
+        if(result==null||!destination.remoteId.equals(result.optString("destination_id")))return "Processing status unavailable";
+        switch(result.optString("stage")){
+            case "needs_attention": return "Processing needs attention";
+            case "agent_completed": return "Agent processing complete";
+            case "agent_processing": return "Agent processing";
+            case "transcript_ready": return "Transcript ready";
+            case "transcribing": return "Transcribing";
+            case "waiting_for_transcription": return "Waiting for transcription";
+            case "waiting_for_agent": return "Waiting for agent";
+            default: return "Processing status unavailable";
+        }
+    }
     static String digest(File file)throws Exception {
         MessageDigest d=MessageDigest.getInstance("SHA-256");try(InputStream in=new FileInputStream(file)){byte[] b=new byte[65536];int n;while((n=in.read(b))!=-1)d.update(b,0,n);}return hex(d.digest());
     }

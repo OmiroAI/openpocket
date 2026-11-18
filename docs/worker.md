@@ -15,3 +15,5 @@ TRANSCRIPT_DIR=/absolute/private/transcripts
 Create the transcript directory, owned by UID 10000 with mode 0700. For an explicitly trusted private HTTP inference endpoint set ALLOW_PRIVATE_HTTP=1. From the checkout run `docker compose --env-file /absolute/private/compose.env -f deploy/transcriber.compose.yaml up -d --build`.
 
 Mount the same transcript directory at the consumer's private openpocket/transcripts path. A finished job publishes v1.json with timed segments and original metadata. A hold.json means a human needs to inspect the available checkpoints before replay. See the [Hermes integration](../integrations/hermes/open-pocket/SKILL.md).
+
+Include `-f deploy/transcript-access.yaml` after `-f deploy/compose.yaml` when starting the backend to enable worker progress in Android recording details. To grant a remote reader access to all published transcripts, set a separate random OPENPOCKET_TRANSCRIPT_TOKEN in the protected backend environment. Send it as a Bearer credential to GET /v1/jobs/JOB_ID/transcript over HTTPS. It grants transcript retrieval only. Protect this credential as carefully as audio access.
