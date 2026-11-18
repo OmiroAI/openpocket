@@ -153,6 +153,9 @@ final class PocketBleClient implements AutoCloseable {
     }
     List<PocketFile> list() throws Exception {
         if (!idle()) throw new IllegalStateException("Recorder is busy recording; retry when idle");
+        return listIdleRecorder();
+    }
+    List<PocketFile> listIdleRecorder() throws Exception {
         ArrayList<String> folders=new ArrayList<>();
         controls.clear(); command("APP&LIST_DIRS");
         long end=System.currentTimeMillis()+15000, last=System.currentTimeMillis();
