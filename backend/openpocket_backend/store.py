@@ -30,8 +30,15 @@ def fsync_directory(path):
 
 def metadata(value):
     required = {"version", "recorder_id", "created_at", "device_timestamp", "duration_seconds", "size_bytes", "sha256"}
-    if not isinstance(value, dict) or set(value) - {"media_type"} != required or value.get("media_type", "audio/mpeg") not in ("audio/mpeg", "audio/mp4"):
+    if not isinstance(value, dict) or set(value) - {"media_type", "location"} != required or value.get("media_type", "audio/mpeg") not in ("audio/mpeg", "audio/mp4"):
         raise Problem(400, "invalid_metadata")
+    if "location" in value:
+        location = value["location"]
+        if not isinstance(location, str) or not re.fullmatch(r"-?\d{1,2}\.\d{2},-?\d{1,3}\.\d{2}", location):
+            raise Problem(400, "invalid_location")
+        lat, lon = map(float, location.split(","))
+        if abs(lat) > 90 or abs(lon) > 180:
+            raise Problem(400, "invalid_location")
     if type(value["version"]) is not int or value["version"] != 1:
         raise Problem(400, "unsupported_version")
     for key in ("recorder_id", "created_at", "device_timestamp"):

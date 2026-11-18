@@ -29,3 +29,5 @@ From the checkout run `docker compose --env-file /absolute/private/compose.env -
 See [development and integration](development.md) for agent setup and [worker setup](worker.md) for optional server-side transcription.
 
 Choose **Record on this phone** in Sync to use the microphone without a recorder. Stop to queue the private AAC recording for the selected destination. Leaving the app also finishes the recording. Update the backend before uploading phone audio.
+
+Enable **Share approximate recording location with agent** in Settings to attach rounded coordinates to new recordings. The app samples location while open and matches a fix within two minutes of recording start. Older recordings and unavailable fixes have no location. Attached coordinates appear in Details and travel in the delivery metadata.

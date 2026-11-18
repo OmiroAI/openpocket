@@ -40,7 +40,7 @@ final class AgentApi {
     static String recordingId(Recording r)throws Exception{return hex(MessageDigest.getInstance("SHA-256").digest(r.id.getBytes(StandardCharsets.UTF_8)));}
     private static String hex(byte[] bytes){StringBuilder out=new StringBuilder();for(byte b:bytes)out.append(String.format(java.util.Locale.US,"%02x",b&255));return out.toString();}
     static JSONObject metadata(Recording r)throws Exception {
-        return new JSONObject().put("media_type",r.device.equals("phone")?"audio/mp4":null).put("version",1).put("recorder_id",r.device.replace(":","").toLowerCase(java.util.Locale.US)).put("created_at",r.createdIso).put("device_timestamp",r.file).put("duration_seconds",r.durationSeconds).put("size_bytes",r.size).put("sha256",r.sha256);
+        return new JSONObject().put("location",r.location).put("media_type",r.device.equals("phone")?"audio/mp4":null).put("version",1).put("recorder_id",r.device.replace(":","").toLowerCase(java.util.Locale.US)).put("created_at",r.createdIso).put("device_timestamp",r.file).put("duration_seconds",r.durationSeconds).put("size_bytes",r.size).put("sha256",r.sha256);
     }
     JSONObject deliver(Destination destination,Recording recording,File file,String token,Progress progress)throws Exception {
         if(token==null||token.isBlank())throw new Failure("Upload credential missing");
