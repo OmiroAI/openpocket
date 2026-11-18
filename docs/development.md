@@ -83,3 +83,13 @@ OPENPOCKET_MODEL to the required model ID in its private client configuration.
 The queue monitor reports an empty runnable set during an outage and publishes
 the queued IDs again on recovery. The claim helper also checks readiness before
 fetching audio. A successful check cannot guarantee availability throughout a job.
+
+## Release signing
+
+Preview APKs are downloadable CI artifacts. For a stable update identity, the
+maintainer creates and backs up a release keystore outside the checkout. Configure
+the protected GitHub environment android-release with ANDROID_KEYSTORE_BASE64,
+ANDROID_STORE_PASSWORD, ANDROID_KEY_PASSWORD and ANDROID_KEY_ALIAS. Require a
+release reviewer, increment versionCode and versionName, then tag a reviewed main
+commit with a v-prefixed version. The release workflow signs and verifies the APK
+and attaches it and SHA256SUMS to a draft GitHub release.

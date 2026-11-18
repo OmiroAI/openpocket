@@ -1,16 +1,15 @@
 from starlette.testclient import TestClient
 from openpocket_backend.app import create_app
-from test_api import ApiTests as Fixture
+import test_api
+from dataclasses import replace
 
 
 def test_status_and_transcript_permissions():
-    fixture = Fixture()
+    fixture = test_api.ApiTests()
     fixture.setUp()
     try:
         job = fixture.upload().json()["job_id"]
-        config = fixture.config
-        config.transcripts=config.root/"transcripts"
-        config.transcript_token="r"*32
+        config = replace(fixture.config, transcripts=fixture.config.root/"transcripts", transcript_token="r"*32)
         client=TestClient(create_app(config,store=fixture.store))
         path="/v1/recordings/sample/progress"
         assert client.get(path,headers=fixture.up).json()["stage"]=="waiting_for_transcription"
