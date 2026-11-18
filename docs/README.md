@@ -19,3 +19,5 @@ Keep durable decisions and their evidence in this directory.
 
 - [Recorder storage accounting](protocol/storage.md): MiB units, published capacity,
   and the measured used/free-space cross-check.
+
+- [First public alpha](product/release-readiness.md) covers release blockers and acceptance checks.
