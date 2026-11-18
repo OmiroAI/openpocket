@@ -24,3 +24,12 @@ build/
 *.iml
 __pycache__/
 .pytest_cache/
+
+# Backend runtime and local development
+.venv/
+*.sqlite*
+*.db
+runtime/
+*.apk
+*.dex
+*.class

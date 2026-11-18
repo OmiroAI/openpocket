@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!requirements.lock.txt
+!openpocket_backend/
+!openpocket_backend/**
+**/__pycache__
+**/*.pyc

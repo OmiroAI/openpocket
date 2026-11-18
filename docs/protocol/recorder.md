@@ -4,7 +4,7 @@ This document records the device communication contract for the Android companio
 
 ## Hardware and media
 
-The recorder uses an Actions ATS3085S4 controller for audio, storage, BLE, and device control, with a separately powered W9118 Wi-Fi module for faster file transfer. Recordings are MP3 (MPEG-2 Layer III), 16 kHz, mono, 32 kbps constant bitrate. Device paths follow `/RECORD/YYYY-MM-DD/YYYYMMDDHHMMSS.mp3`. File commands use the timestamp without `.mp3`. The recording partition is approximately 59.6 MB on the documented device.
+The recorder uses an Actions ATS3085S4 controller for audio, storage, BLE, and device control, with a separately powered W9118 Wi-Fi module for faster file transfer. Recordings are MP3 (MPEG-2 Layer III), 16 kHz, mono, 32 kbps constant bitrate. Device paths follow `/RECORD/YYYY-MM-DD/YYYYMMDDHHMMSS.mp3`. File commands use the timestamp without `.mp3`. Storage is reported in whole MiB (1,048,576 bytes); see [storage accounting](storage.md).
 
 BLE is the control and event channel. It can also transfer media. Wi-Fi provides a direct SoftAP and TCP stream. The host phone receives the recording and is responsible for delivery to the chosen self-hosted agent; the recorder does not perform that delivery.
 
@@ -21,14 +21,14 @@ Subscribe to control notifications before issuing commands. Commands use `APP&..
 
 ## Binding and clock
 
-An unbound device uses `APP&LNP&<client_uuid>` (`MCU&LNP`), followed by `APP&SK&<16-character hex key>` (`MCU&SK&OK` or `MCU&SK&ERR`) and `APP&T&<epoch_seconds>` (`MCU&T&OK`). Store the binding key securely. Never put real keys in source, logs, fixtures, or analytics. The key's first eight characters form the documented SoftAP password.
+For first-time pairing, generate a recorder-specific 16-character hex key and send `APP&SK&<key>`. After `MCU&SK&OK`, send `APP&T&<epoch_seconds>` and wait for `MCU&T&OK`. This sequence succeeded on an unpaired recorder with Pixel 7 Pro. Require positive acknowledgment before selecting the new recorder. Store the binding key securely. Never put real keys in source, logs, fixtures, or analytics. The key's first eight characters form the documented SoftAP password.
 
 ## Discovery and status
 
 | Command | Expected response | Purpose |
 | --- | --- | --- |
 | `APP&BAT` | `MCU&BAT&<percent>` | Battery state |
-| `APP&SPACE` | `MCU&SPA&<free_kb>&<total_kb>` | Storage state |
+| `APP&SPACE` | `MCU&SPA&<free_mib>&<total_mib>` | Storage state |
 | `APP&FW` | `MCU&FW&<version>` | Controller firmware |
 | `APP&WF` | `MCU&WF&<version>` | Wi-Fi firmware |
 | `APP&MAC` | `MCU&MAC&<mac>` | Device address |
@@ -52,3 +52,8 @@ Avoid Wi-Fi transfer at 10% battery or below. Restore the phone's previous netwo
 ## USB mode and firmware updates
 
 `APP&USB&1` exposes storage over USB and disables normal recorder ownership of that storage; `APP&USB&0` restores it. Firmware update commands and USB mode switching are outside the initial sync scope and require separate requirements and hardware verification.
+
+`APP&SPACE` returns free space first, total space second, in whole MiB. The
+previous KB interpretation was incorrect. Convert with 1,048,576 bytes per unit;
+calculate percentage from `(total - free) / total`. See [storage accounting](storage.md)
+for the published capacity cross-check and measured example.

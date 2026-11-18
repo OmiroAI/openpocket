@@ -1,0 +1,32 @@
+name: openpocket
+services:
+  backend:
+    image: openpocket-backend:local
+    build: ../backend
+    restart: unless-stopped
+    env_file: ${OPENPOCKET_ENV_FILE:?private backend environment file required}
+    environment:
+      OPENPOCKET_DATA_DIR: /data
+    volumes:
+      - ${OPENPOCKET_DATA_DIR:?private data directory required}:/data
+    networks: [backend]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  access:
+    image: nginx:alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a
+    restart: unless-stopped
+    depends_on: [backend]
+    ports:
+      - "${OPENPOCKET_BIND_IP:?Tailscale IP required}:${OPENPOCKET_HTTPS_PORT:-8448}:8448"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${OPENPOCKET_TLS_DIR:?certificate directory required}:/tls:ro
+    networks: [backend, access]
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run, /tmp]
+networks:
+  backend:
+    internal: true
+  access: {}

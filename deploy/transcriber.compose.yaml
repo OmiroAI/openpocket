@@ -1,0 +1,27 @@
+name: openpocket-transcription
+services:
+  worker:
+    container_name: openpocket-transcriber
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.worker
+    environment:
+      TRANSCRIPTION_ENDPOINT: ${TRANSCRIPTION_ENDPOINT:?private transcription URL required}
+      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:?model ID required}
+      ALLOW_PRIVATE_HTTP: ${ALLOW_PRIVATE_HTTP:-0}
+    command: ["python", "/app/worker.py"]
+    user: "10000:10000"
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp:mode=1777,size=2g"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [access]
+    volumes:
+      - ${AGENT_CONFIG:?protected agent configuration}:/config/agent.json:ro
+      - ${AUDIO_DIR:?backend audio directory}:/data/audio:ro
+      - ${TRANSCRIPT_DIR:?private transcript exchange}:/transcripts
+networks:
+  access:
+    external: true
+    name: openpocket_access

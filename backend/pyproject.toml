@@ -1,0 +1,10 @@
+[project]
+name = "openpocket-backend"
+version = "0.5.0"
+requires-python = ">=3.12"
+dependencies = ["starlette>=0.52.1,<1", "uvicorn>=0.40,<1"]
+[dependency-groups]
+dev = ["pytest>=9,<10", "httpx>=0.28,<1"]
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
