@@ -6,7 +6,7 @@ The documented recorder uses an Actions ATS3085S4 audio controller and a W9118 W
 | --- | --- |
 | Acoustic microphone | Ambient speech capture |
 | Contact microphone | Chassis vibration capture for call scenes |
-| Storage | Approximately 59.6 MB recording partition, arranged by date |
+| Storage | 64 GB nominal; device reports usable space in MiB; see [storage accounting](storage.md) |
 | BLE | GATT command, events, and MP3 transfer |
 | Wi-Fi | 2.4 GHz SoftAP; direct TCP stream on port 8475 |
 | USB | Optional mass-storage mode; changes storage ownership |

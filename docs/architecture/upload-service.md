@@ -54,3 +54,7 @@ Notifications may repeat or fail. Persist retries and let the agent poll the job
 ## Review and verification
 
 Verify upload/receipt recovery, content conflicts, simultaneous duplicate submissions, agent access scopes, concurrent claims, lease expiration, stale completions, notification failure, and restart reconciliation using synthetic audio and a test agent. Agree the Hermes hook and result-reference format before end-to-end implementation. No live server deployment is part of this design PR.
+
+## Remote agent audio access
+
+`GET /v1/jobs/{job_id}/audio` requires the agent credential, returns the original accepted MPEG audio with `Cache-Control: no-store`, and returns 404 when a job or retained audio is unavailable. Upload credentials cannot read this endpoint. Agents must verify the metadata size and SHA256 before processing. The Hermes helper supports either a shared root or private authenticated download; the database is never mounted into the agent.

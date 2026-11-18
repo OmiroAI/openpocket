@@ -9,3 +9,13 @@
 - `security.md`: rules for local media and credentials.
 
 Keep durable decisions and their evidence in this directory.
+
+
+- [Visual design](product/visual-design.md): Android styling and review scope.
+
+- [Wi-Fi transfer](architecture/wifi-transfer.md): Android network lifecycle and Bluetooth fallback.
+
+- [Development and deployment](development.md): private Docker HTTPS and agent setup.
+
+- [Recorder storage accounting](protocol/storage.md): MiB units, published capacity,
+  and the measured used/free-space cross-check.
