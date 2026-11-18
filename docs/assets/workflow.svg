@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="140" viewBox="0 0 840 140" role="img" aria-labelledby="title desc">
+<title id="title">From Pocket to your agent</title><desc id="desc">Record on Pocket, sync on Android, deliver to a private server and ask your agent about your notes.</desc>
+<rect width="840" height="140" rx="20" fill="#192841"/>
+<g fill="none" stroke="#a9ceff" stroke-width="3" stroke-linejoin="round"><rect x="78" y="24" width="38" height="45" rx="10"/><circle cx="97" cy="48" r="6"/><rect x="280" y="21" width="30" height="51" rx="6"/><path d="M290 64h10"/><rect x="483" y="27" width="42" height="17" rx="4"/><rect x="483" y="48" width="42" height="17" rx="4"/><path d="M691 27h48v32h-29l-12 10V59h-7z"/></g>
+<g stroke="#89a4c7" fill="none" stroke-width="2"><path d="M150 47h88m-7-6 7 6-7 6 M352 47h88m-7-6 7 6-7 6 M559 47h88m-7-6 7 6-7 6"/></g>
+<g font-family="system-ui,sans-serif" font-size="18" fill="white" text-anchor="middle"><text x="97" y="105">Record on Pocket</text><text x="295" y="105">Sync on Android</text><text x="504" y="105">Your server</text><text x="716" y="105">Your agent</text></g></svg>
