@@ -54,6 +54,19 @@ class ApiTests(unittest.TestCase):
         job=self.upload().json()['job_id']
         self.assertEqual(self.client.post(f'/v1/jobs/{job}/claim',headers=self.up).status_code,401)
 
+    def test_phone_container_round_trip(self):
+        meta = {**self.meta, "media_type": "audio/mp4"}
+        self.assertEqual(self.upload(meta=meta).status_code, 415)
+        headers = {**self.up, "Content-Type": "audio/mp4", "X-Recording-Metadata":
+                   base64.b64encode(json.dumps(meta).encode()).decode()}
+        receipt = self.client.put("/v1/recordings/sample", headers=headers, content=self.audio)
+        self.assertEqual(receipt.status_code, 201)
+        job_id = receipt.json()["job_id"]
+        self.assertEqual(self.store.job_audio(job_id).suffix, ".m4a")
+        audio = self.client.get(f"/v1/jobs/{job_id}/audio", headers=self.agent)
+        self.assertEqual(audio.headers["content-type"], "audio/mp4")
+        self.assertEqual(audio.content, self.audio)
+
     def test_same_size_different_content_is_conflict(self):
         self.upload()
         changed = {**self.meta,'sha256':hashlib.sha256(b'x'*len(self.audio)).hexdigest()}

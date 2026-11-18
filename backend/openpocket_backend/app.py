@@ -111,8 +111,8 @@ def create_app(config: Config, adapter=None, store=None):
             raise Problem(400, "length_required_or_mismatch")
         if length > config.max_upload_bytes:
             raise Problem(413, "upload_too_large")
-        if request.headers.get("content-type") != "audio/mpeg":
-            raise Problem(415, "expected_audio_mpeg")
+        if request.headers.get("content-type") != meta.get("media_type", "audio/mpeg"):
+            raise Problem(415, "unexpected_audio_type")
         try:
             accepted = await run_in_threadpool(store.lookup, recording_id)
         except Problem as error:
@@ -163,7 +163,7 @@ def create_app(config: Config, adapter=None, store=None):
     async def audio_file(request):
         auth(request, "agent")
         path = await run_in_threadpool(store.job_audio, request.path_params["job_id"])
-        return FileResponse(path, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
+        return FileResponse(path, media_type="audio/mp4" if path.suffix == ".m4a" else "audio/mpeg", headers={"Cache-Control": "no-store"})
 
     async def action(request):
         auth(request, "agent")

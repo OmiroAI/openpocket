@@ -30,7 +30,7 @@ def fsync_directory(path):
 
 def metadata(value):
     required = {"version", "recorder_id", "created_at", "device_timestamp", "duration_seconds", "size_bytes", "sha256"}
-    if not isinstance(value, dict) or set(value) != required:
+    if not isinstance(value, dict) or set(value) - {"media_type"} != required or value.get("media_type", "audio/mpeg") not in ("audio/mpeg", "audio/mp4"):
         raise Problem(400, "invalid_metadata")
     if type(value["version"]) is not int or value["version"] != 1:
         raise Problem(400, "unsupported_version")
@@ -145,7 +145,7 @@ class Store:
                     raise Problem(409, "recording_conflict")
             else:
                 stem = hashlib.sha256(recording_id.encode()).hexdigest()
-                audio = self.root / "audio" / (stem + ".mp3")
+                audio = self.root / "audio" / (stem + (".m4a" if meta.get("media_type") == "audio/mp4" else ".mp3"))
                 manifest = self.root / "manifests" / (stem + ".json")
                 # An uncommitted journal belongs to crash recovery, never overwrite it.
                 if manifest.exists():

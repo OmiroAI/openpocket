@@ -40,7 +40,7 @@ final class AgentApi {
     static String recordingId(Recording r)throws Exception{return hex(MessageDigest.getInstance("SHA-256").digest(r.id.getBytes(StandardCharsets.UTF_8)));}
     private static String hex(byte[] bytes){StringBuilder out=new StringBuilder();for(byte b:bytes)out.append(String.format(java.util.Locale.US,"%02x",b&255));return out.toString();}
     static JSONObject metadata(Recording r)throws Exception {
-        return new JSONObject().put("version",1).put("recorder_id",r.device.replace(":","").toLowerCase(java.util.Locale.US)).put("created_at",r.createdIso).put("device_timestamp",r.file).put("duration_seconds",r.durationSeconds).put("size_bytes",r.size).put("sha256",r.sha256);
+        return new JSONObject().put("media_type",r.device.equals("phone")?"audio/mp4":null).put("version",1).put("recorder_id",r.device.replace(":","").toLowerCase(java.util.Locale.US)).put("created_at",r.createdIso).put("device_timestamp",r.file).put("duration_seconds",r.durationSeconds).put("size_bytes",r.size).put("sha256",r.sha256);
     }
     JSONObject deliver(Destination destination,Recording recording,File file,String token,Progress progress)throws Exception {
         if(token==null||token.isBlank())throw new Failure("Upload credential missing");
@@ -65,7 +65,7 @@ final class AgentApi {
         connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(15000);connection.setReadTimeout(30000);
         connection.setRequestProperty("Authorization","Bearer "+token);
         try{
-            if(file!=null){connection.setRequestMethod("PUT");connection.setDoOutput(true);connection.setRequestProperty("Content-Type","audio/mpeg");connection.setRequestProperty("X-Recording-Metadata",Base64.encodeToString(meta.toString().getBytes(StandardCharsets.UTF_8),Base64.NO_WRAP));connection.setFixedLengthStreamingMode(file.length());
+            if(file!=null){connection.setRequestMethod("PUT");connection.setDoOutput(true);connection.setRequestProperty("Content-Type",meta.optString("media_type","audio/mpeg"));connection.setRequestProperty("X-Recording-Metadata",Base64.encodeToString(meta.toString().getBytes(StandardCharsets.UTF_8),Base64.NO_WRAP));connection.setFixedLengthStreamingMode(file.length());
                 try(InputStream in=new FileInputStream(file);OutputStream out=connection.getOutputStream()){byte[] buf=new byte[65536];int n;long count=0;while((n=in.read(buf))!=-1){if(Thread.currentThread().isInterrupted())throw new InterruptedIOException();out.write(buf,0,n);count+=n;if(progress!=null)progress.update(count,file.length());}}
             }
             int status=connection.getResponseCode();if(status==404&&file==null&&!url.endsWith("/info"))return null;
