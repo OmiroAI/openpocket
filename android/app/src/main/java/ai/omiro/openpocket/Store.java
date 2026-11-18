@@ -41,6 +41,25 @@ final class Store extends SQLiteOpenHelper {
         ContentValues v=new ContentValues();v.put("id",id);v.put("device",device);v.put("folder",file.folder);v.put("file",file.name);v.put("state","pending");v.put("destination_id",destinationId);v.put("created_at",created);v.put("created_iso",Instant.ofEpochMilli(created).toString());v.put("duration_seconds",file.durationSeconds);v.put("updated_at",System.currentTimeMillis());
         getWritableDatabase().insertOrThrow("recordings",null,v);
     }
+    synchronized void savePhone(java.io.File file, long started, long seconds, String destination, boolean approved) throws Exception {
+        ContentValues row = new ContentValues();
+        row.put("id", "phone:" + UUID.randomUUID());
+        row.put("device", "phone");
+        row.put("folder", "");
+        row.put("file", file.getName());
+        row.put("state", "downloaded");
+        row.put("created_at", started);
+        row.put("created_iso", Instant.ofEpochMilli(started).toString());
+        row.put("duration_seconds", seconds);
+        row.put("destination_id", destination);
+        row.put("approved", approved ? 1 : 0);
+        row.put("on_pocket", 0);
+        row.put("local_path", file.getAbsolutePath());
+        row.put("size", file.length());
+        row.put("sha256", AgentApi.digest(file));
+        row.put("updated_at", System.currentTimeMillis());
+        getWritableDatabase().insertOrThrow("recordings", null, row);
+    }
     synchronized void bindUnassigned(String destinationId) {
         if(destinationId==null)return;ContentValues v=new ContentValues();v.put("destination_id",destinationId);v.put("approved",1);
         getWritableDatabase().update("recordings",v,"destination_id IS NULL",null);

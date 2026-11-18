@@ -23,17 +23,67 @@ public class MainActivity extends Activity {
     private Store store;private AppSettings settings;private SecureStore secrets;private SyncEngine engine;
     private LinearLayout root,content;private ScrollView scroll;private TextView liveStatus;private String status="Ready to connect";private boolean settingsScreen;private boolean attentionOnly;
     private boolean deliveredScreen;
+    private MediaRecorder phoneMic;
+    private File phoneFile;
+    private long phoneStarted, phoneElapsed;
+    private String phoneDestination;
+
+    private void startPhone() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 11);
+            return;
+        }
+        MediaRecorder mic = new MediaRecorder(this);
+        try {
+            File dir = new File(getFilesDir(), "recordings");
+            if (!dir.isDirectory() && !dir.mkdirs()) throw new java.io.IOException();
+            phoneFile = File.createTempFile("phone-", ".m4a", dir);
+            mic.setAudioSource(MediaRecorder.AudioSource.MIC);
+            mic.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            mic.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            mic.setOutputFile(phoneFile);
+            mic.prepare();
+            mic.start();
+            phoneStarted = System.currentTimeMillis();
+            phoneElapsed = SystemClock.elapsedRealtime();
+            phoneDestination = settings.destinationId();
+            phoneMic = mic;
+            renderRecordings();
+        } catch (Exception error) {
+            mic.release();
+            if (phoneFile != null) phoneFile.delete();
+            phoneFile = null;
+            toast("Could not start the phone microphone");
+        }
+    }
+    private void stopPhone() {
+        if (phoneMic == null) return;
+        try {
+            phoneMic.stop();
+            store.savePhone(phoneFile, phoneStarted, (SystemClock.elapsedRealtime()-phoneElapsed)/1000, phoneDestination, Objects.equals(phoneDestination, settings.destinationId()));
+            engine.syncNow();
+        } catch (RuntimeException error) {
+            toast("Phone recording could not be finalized");
+        } catch (Exception error) {
+            toast("Phone audio saved locally but could not be queued");
+        } finally {
+            phoneMic.release();
+            phoneMic = null;
+            phoneFile = null;
+            renderRecordings();
+        }
+    }
     private final Handler handler=new Handler();private MediaPlayer player;private ScanCallback scanning;
     private Runnable afterPermission;private ProgressBar transferProgress;private TextView recorderFeedback,agentFeedback,storageUsage;private boolean agentSaving;private Runnable scanTimeout;
     private EditText deviceInput,bindingInput,nameInput,urlInput,tokenInput;
     @Override public void onCreate(Bundle state){super.onCreate(state);store=new Store(this);settings=new AppSettings(this);secrets=new SecureStore(this);engine=new SyncEngine(this,store,settings,secrets,s->runOnUiThread(()->{status=s;if(liveStatus!=null)liveStatus.setText(friendlyStatus(s));if(transferProgress!=null&&s.contains("%")){transferProgress.setVisibility(View.VISIBLE);try{transferProgress.setIndeterminate(false);transferProgress.setProgress(Integer.parseInt(s.substring(s.lastIndexOf("·")+1).replace("%", "").trim()));}catch(Exception ignored){}}if(!settingsScreen&&!s.contains("%")&&(!deliveredScreen||s.equals("Recording delivered")||s.contains("removed")))renderRecordings();else if(settingsScreen)updateStorage();}));getWindow().setStatusBarColor(paper);getWindow().setNavigationBarColor(paper);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);render();}
     @Override protected void onStart(){super.onStart();if(!BuildConfig.DEBUG||!getIntent().getBooleanExtra("bench",false))engine.visible(true);}
-    @Override protected void onStop(){super.onStop();stopScan();stopPlayback();engine.visible(false);}
+    @Override protected void onStop(){super.onStop();stopPhone();stopScan();stopPlayback();engine.visible(false);}
     @Override protected void onDestroy(){engine.stop();super.onDestroy();}
     private boolean hasPermissions(){return checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED;}
     private boolean permission(){if(hasPermissions()&&(!settings.preferWifi()||checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES)==PackageManager.PERMISSION_GRANTED))return true;requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT,Manifest.permission.NEARBY_WIFI_DEVICES},10);return false;}
     private void withPermission(Runnable action){if(permission())action.run();else afterPermission=action;}
-    @Override public void onRequestPermissionsResult(int code,String[] p,int[] results){super.onRequestPermissionsResult(code,p,results);Runnable next=afterPermission;afterPermission=null;if(hasPermissions()){if(next!=null)next.run();}else toast("Allow Nearby devices in Android Settings to connect to Pocket");}
+    @Override public void onRequestPermissionsResult(int code,String[] p,int[] results){super.onRequestPermissionsResult(code,p,results);if(code==11){if(results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED)startPhone();else toast("Microphone permission is needed to record on this phone");return;}Runnable next=afterPermission;afterPermission=null;if(hasPermissions()){if(next!=null)next.run();}else toast("Allow Nearby devices in Android Settings to connect to Pocket");}
     private int dp(int x){return Math.round(x*getResources().getDisplayMetrics().density);}
     private TextView text(String value,int size,int color){TextView v=new TextView(this);v.setText(value);v.setTextSize(size);v.setTextColor(color);v.setPadding(0,dp(5),0,dp(5));return v;}
     private void title(LinearLayout parent,String value,int size){TextView v=text(value,size,ink);v.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));parent.addView(v);}
@@ -91,6 +141,9 @@ public class MainActivity extends Activity {
             long failed=deviceRecords.stream().filter(r->r.state.equals("failed")&&r.localPath==null).count();
             if(failed>0)connection.addView(text(failed+" downloads need attention",13,0xffa63c36));
         }
+        Button microphone = button(phoneMic == null ? "Record on this phone" : "Stop phone recording",
+            () -> { if (phoneMic == null) startPhone(); else stopPhone(); });
+        connection.addView(microphone);
         showPocketStorage(connection);
         if(settings.device().isBlank()){Button connect=button("Connect Pocket",()->withPermission(this::scan));primary(connect);connection.addView(connect);}
         else {
@@ -176,7 +229,7 @@ public class MainActivity extends Activity {
     private void updateStorage(){if(storageUsage==null)return;long used=0;for(Recording r:store.recordings())if(r.localPath!=null)used+=new File(r.localPath).length();storageUsage.setText(formatBytes(used)+" on this phone");}
     private void saveDestination(Destination old){if(agentSaving)return;String name=nameInput.getText().toString().trim(),url=urlInput.getText().toString().trim(),token=tokenInput.getText().toString().trim();try{if(token.isEmpty()&&old!=null)token=secrets.get("upload:"+old.id);}catch(Exception e){toast("Saved credential unavailable; enter it again");return;}if(token==null)token="";final String credential=token;Runnable save=()->{agentSaving=true;agentFeedback.setText("Checking connection…");engine.destination(name,url,credential,error->runOnUiThread(()->{agentSaving=false;if(error==null){toast("Agent connected");nameInput=null;urlInput=null;tokenInput=null;renderSettings();}else{agentFeedback.setText(error);agentFeedback.setTextColor(0xffa63c36);}}));};if(old!=null&&(!old.url.equals(url)||!old.name.equals(name)))new AlertDialog.Builder(this).setTitle("Change destination?").setMessage("Existing recordings keep their original destination and pause delivery. In Details, choose to finish there or move a recording that has never been uploaded.").setNegativeButton("Cancel",null).setPositiveButton("Check and save",(d,w)->save.run()).show();else save.run();}
     private void details(String id){Recording r=store.recording(id);if(r==null)return;Destination d=store.destination(r.destinationId);List<String> choices=new ArrayList<>();if(r.localPath!=null)choices.add("Play recording");if(r.state.equals("failed"))choices.add("Retry transfer");if(!r.approved&&!r.state.equals("delivered")){choices.add("Finish at original destination");if(!r.attempted&&settings.destinationId()!=null)choices.add("Move to current destination");}if(r.onPocket)choices.add("Delete from Pocket…");if(r.localPath!=null&&r.state.equals("delivered"))choices.add("Remove local copy…");
-        String message=DateFormat.getDateTimeInstance().format(new Date(r.createdAt))+"\n"+RecordingPresentation.duration(r.durationSeconds)+" · "+formatBytes(r.size)+"\nDestination: "+(d==null?"Not assigned":d.name)+"\nStatus: "+(r.state.equals("failed")?RecordingPresentation.failureLabel(r,d==null?"agent":d.name)+"\n"+RecordingPresentation.failureHelp(r):label(r.state))+"\nOn Pocket: "+(r.onPocket?"Yes":"Deleted")+"\nLocal audio: "+(r.localPath==null?"Unavailable":"Available");
+        String message=DateFormat.getDateTimeInstance().format(new Date(r.createdAt))+"\n"+RecordingPresentation.duration(r.durationSeconds)+" · "+formatBytes(r.size)+"\nDestination: "+(d==null?"Not assigned":d.name)+"\nStatus: "+(r.state.equals("failed")?RecordingPresentation.failureLabel(r,d==null?"agent":d.name)+"\n"+RecordingPresentation.failureHelp(r):label(r.state))+"\nOn Pocket: "+(r.device.equals("phone")?"Recorded on phone":r.onPocket?"Yes":"Deleted")+"\nLocal audio: "+(r.localPath==null?"Unavailable":"Available");
         LinearLayout view=column();view.setPadding(dp(20),0,dp(20),0);view.addView(text(message,15,ink));
         if(r.state.equals("delivered")&&d!=null){
             TextView processing=text("Checking agent status…",14,muted);
