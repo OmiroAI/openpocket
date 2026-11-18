@@ -119,12 +119,33 @@ final class SyncEngine {
         if(visible&&!yieldDownloads)uploadPending();
         if(visible){long downloads=0,uploads=0;for(Recording r:store.recordings())if(r.state.equals("failed")){if(r.localPath==null)downloads++;else uploads++;}changed(downloads+uploads>0?downloads+" download failures · "+uploads+" uploads need attention":pocket!=null&&pocket.isConnected()?"Pocket connected · queue checked":"Pocket disconnected · local queue checked");}
     }
-    private void syncPocket(String address)throws Exception{
+    void control(PocketBleClient.Control action, Result result) {
+        long session = foregroundVersion;
+        long requested = android.os.SystemClock.elapsedRealtime();
+        String address = settings.device();
+        worker.execute(() -> {
+            try {
+                if (!visible || session != foregroundVersion || !address.equals(settings.device()))
+                    throw new IllegalStateException("Recorder selection changed");
+                if (android.os.SystemClock.elapsedRealtime() - requested > 3000)
+                    throw new IllegalStateException("Transfer busy. Try the recording control again.");
+                connectPocket(address);
+                pocket.control(action);
+                result.done(null);
+                if (action == PocketBleClient.Control.STOP) cycle();
+            } catch (Exception error) { result.done(safe(error)); }
+        });
+    }
+    private void connectPocket(String address) throws Exception {
         if(pocket==null||!pocket.isConnected()){changed("Connecting to Pocket");PocketBleClient p=new PocketBleClient(context);pocket=p;p.connect(address);p.authenticate(recorderKey(address));store.event("recorder","Pocket connected");}
+    }
+    private void syncPocket(String address)throws Exception{
+        connectPocket(address);
+        if (!pocket.idle()) { changed("Pocket is recording or paused"); return; }
         wifiThisCycle=System.currentTimeMillis()>=wifiRetryAfter&&settings.preferWifi()&&context.checkSelfPermission(android.Manifest.permission.NEARBY_WIFI_DEVICES)==android.content.pm.PackageManager.PERMISSION_GRANTED;
         if(wifiThisCycle){try{wifiThisCycle=pocket.battery()>10;}catch(Exception unavailable){wifiThisCycle=false;}}
         if(!visible)return;try{long[] space=pocket.storage();settings.storage(address,space[0],space[1]);}catch(Exception unavailable){settings.invalidateStorage();}
-        if(!visible)return;changed("Discovering recordings");List<PocketFile> files=pocket.list();for(PocketFile file:files)store.discover(address,file,settings.destinationId());store.bindUnassigned(settings.destinationId());changed("Found "+files.size()+" recordings");
+        if(!visible)return;changed("Discovering recordings");List<PocketFile> files=pocket.listIdleRecorder();for(PocketFile file:files)store.discover(address,file,settings.destinationId());store.bindUnassigned(settings.destinationId());changed("Found "+files.size()+" recordings");
         for(Recording r:store.recordings()){if(!visible||yieldDownloads)return;if(address.equalsIgnoreCase(r.device)&&r.onPocket&&"pending".equals(r.state))download(r);}
     }
     private void download(Recording r){File directory=new File(context.getFilesDir(),"recordings");if(!directory.isDirectory()&&!directory.mkdirs()){fail(r,"Private storage unavailable");return;}
