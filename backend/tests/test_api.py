@@ -47,6 +47,13 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.call(job, 'retry').status_code, 200)
         self.assertEqual(len(self.store.list_jobs('all','',100)['jobs']),1)
 
+    def test_optional_capture_location_is_validated_and_preserved(self):
+        for location in (None, "unknown", "91.00,0.00", "0.00,181.00"):
+            self.assertEqual(self.upload(meta={**self.meta, "location": location}).status_code, 400)
+        receipt = self.upload(meta={**self.meta, "location": "0.00,0.00"})
+        self.assertEqual(receipt.status_code, 201)
+        self.assertEqual(receipt.json()["metadata"]["location"], "0.00,0.00")
+
     def test_auth_scopes(self):
         self.assertEqual(self.client.get('/v1/info').status_code,401)
         self.assertEqual(self.client.get('/v1/info',headers=self.agent).status_code,401)
