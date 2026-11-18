@@ -1,0 +1,24 @@
+name: openpocket-transcription
+services:
+  worker:
+    container_name: openpocket-transcriber
+    image: openpocket-backend:local
+    command: ["python", "/app/worker.py"]
+    user: "10000:10000"
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ["/tmp:mode=1777,size=2g"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [access]
+    volumes:
+      - ${WORKER_RUNTIME:?runtime directory}/worker-v2.py:/app/worker.py:ro
+      - ${WORKER_RUNTIME:?runtime directory}/ffmpeg:/usr/local/bin/ffmpeg:ro
+      - ${WORKER_RUNTIME:?runtime directory}/transcribe.py:/provider/transcribe.py:ro
+      - ${AGENT_CONFIG:?protected agent configuration}:/config/agent.json:ro
+      - ${AUDIO_DIR:?backend audio directory}:/data/audio:ro
+      - ${TRANSCRIPT_DIR:?private transcript exchange}:/transcripts
+networks:
+  access:
+    external: true
+    name: openpocket_access
